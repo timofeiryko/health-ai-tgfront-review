@@ -7,7 +7,6 @@ import os
 import httpx
 from retry import retry
 from contextlib import asynccontextmanager
-from django.utils.crypto import get_random_string
 
 from tgfront.utils import generate_dummy_email
 
@@ -19,6 +18,10 @@ HEADERS = {
 BACKEND_API_ENDPOINT = os.getenv('BACKEND_API_ENDPOINT')
 
 RETRY = httpx.AsyncHTTPTransport(retries=2)
+
+def get_random_string(length: int) -> str:
+    """Generates a random string of the given length"""
+    return os.urandom(length).hex()
 
 @asynccontextmanager
 async def get_async_client():

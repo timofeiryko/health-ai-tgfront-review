@@ -5,14 +5,19 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 
 from flag import flag
+from dotenv import load_dotenv
 
-import sys
+import os, sys
+import json
 from typing import Callable
 from datetime import datetime
 
 sys.path.append("..")
-from health_ai_bot.health_ai_bot.settings import SUPPORTED_LANGS
 from tgfront.translated_messages import MESSAGES_DICT
+
+load_dotenv()
+
+SUPPORTED_LANGS = json.loads(os.getenv('SUPPORTED_LANGS'))
 
 class RegistrationStates(StatesGroup):
 

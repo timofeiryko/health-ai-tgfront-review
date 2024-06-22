@@ -1,11 +1,11 @@
 import asyncio
 import logging
-import sys
+import os, sys
 
 from aiogram import Bot, Dispatcher, html, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart, Command
+from aiogram.filters import CommandStart
 from aiogram.types import (
     KeyboardButton,
     Message,
@@ -14,12 +14,11 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 
-sys.path.append("..")
-from tgfront.translated_messages import MESSAGES_DICT
-from tgfront.utils import RegistrationStates, get_lang_keyboard, get_sex_keyboard, check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
-from tgfront.to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
+from translated_messages import MESSAGES_DICT
+from utils import RegistrationStates, get_lang_keyboard, get_sex_keyboard, check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
+from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
 
-
+TOKEN = os.getenv('TG_BOT_TOKEN')
 
 # All handlers should be attached to the Router (or Dispatcher)
 dp = Dispatcher()
