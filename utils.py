@@ -8,16 +8,17 @@ from flag import flag
 from dotenv import load_dotenv
 
 import os, sys
-import json
 from typing import Callable
 from datetime import datetime
 
-sys.path.append("..")
-from tgfront.translated_messages import MESSAGES_DICT
+from translated_messages import MESSAGES_DICT
 
 load_dotenv()
 
-SUPPORTED_LANGS = json.loads(os.getenv('SUPPORTED_LANGS'))
+SUPPORTED_LANGS = {
+    'en': 'English',
+    'ru': 'Русский',
+}
 
 class RegistrationStates(StatesGroup):
 

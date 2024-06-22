@@ -8,7 +8,7 @@ import httpx
 from retry import retry
 from contextlib import asynccontextmanager
 
-from tgfront.utils import generate_dummy_email
+from utils import generate_dummy_email
 
 load_dotenv()
 
