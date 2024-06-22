@@ -22,8 +22,6 @@ TOKEN = os.getenv('TG_BOT_TOKEN')
 
 # All handlers should be attached to the Router (or Dispatcher)
 dp = Dispatcher()
-
-ADMIN_TG_IDS = ['5017418518']
     
 # <<<--->>>
 # HANDLERS
@@ -33,10 +31,6 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     """
     This handler receives messages with `/start` command
     """
-    
-    if message.from_user.id in ADMIN_TG_IDS:
-        # don't set any states and just say hello
-        await message.answer(f"Hello, {html.bold(message.from_user.full_name)}! You are an admin. You can control the bot.")
     
     await state.set_state(RegistrationStates.language)
     message_text = f"Hello, {html.bold(message.from_user.full_name)}! Please, chose a language:"
