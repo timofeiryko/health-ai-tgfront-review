@@ -112,8 +112,9 @@ async def process_profile_or_skip(message: Message, state: FSMContext) -> None:
         message_text = MESSAGES_DICT['birth_date'][preferred_lang]
         await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
     elif message.text == MESSAGES_DICT['skip'][preferred_lang]:
-        await state.set_state(RegistrationStates.completed)
-        await all_saved(message, state)
+        await state.set_state(RegistrationStates.description)
+        message_text = MESSAGES_DICT['description'][preferred_lang]
+        await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
     else:
         message_text = MESSAGES_DICT['yes_or_no'][preferred_lang]
         await message.answer(message_text, reply_markup=ReplyKeyboardMarkup(
@@ -267,11 +268,12 @@ async def all_saved(message: Message, state: FSMContext) -> None:
     
     data = await state.get_data()
     # TODO VERY BAD
-    if 'birth_date' not in data or 'sex' not in data or 'mass' not in data or 'height' not in data or 'eats_meat' not in data or 'eats_fish' not in data or 'eats_dairy' not in data or 'description' not in data:
+    if 'birth_date' not in data or 'sex' not in data or 'mass' not in data or 'height' not in data or 'eats_meat' not in data or 'eats_fish' not in data or 'eats_dairy' not in data:
         # just save the profile with preferred_lang and exit
         profile_data = {
             'preferred_lang': data['preferred_lang'],
-            'name': message.from_user.first_name
+            'name': message.from_user.first_name,
+            'description': data['description']
         }
     else:
         try:
