@@ -4,6 +4,7 @@ from dataclasses import dataclass
 class TranslatedMessage:
     en: str
     ru: str
+    es: str
 
     def __getitem__(self, key):
         return self.__dict__[key]
@@ -17,91 +18,114 @@ class AttrDict(dict):
 MESSAGES_DICT: AttrDict[str, TranslatedMessage] = AttrDict({
     'completed': TranslatedMessage(
         en='Hooray, everything is saved! In case you want to change your profile, just send /start. I will be glad to help, feel free to ask any questions ☺️',
-        ru='Ура, всё сохранено! Если захотите изменить профиль, просто отправьте /start. Буду рад помочь, не стесняйтесь задавать любые вопросы ☺️'
+        ru='Ура, всё сохранено! Если захотите изменить профиль, просто отправьте /start. Буду рад помочь, не стесняйтесь задавать любые вопросы ☺️',
+        es='¡Hurra, todo está guardado! En caso de que desee cambiar su perfil, simplemente envíe /start. Estaré encantado de ayudar, no dude en hacer cualquier pregunta ☺️'
     ),
     'saving_info': TranslatedMessage(
         en='Saving your info...',
-        ru='Сохраняю вашу информацию...'
+        ru='Сохраняю вашу информацию...',
+        es='Guardando tu información...'
     ),
     'profile_or_skip': TranslatedMessage(
         en='In order for my recommendations to be more accurate and personalized, we need to get to know each other a little better. Do you want to fill out a profile in 1 minute?',
-        ru='Чтобы я мои рекомендации были точнее и более персонализированными, нам нужно познакомиться немного поближе. Хотите заполнить профиль за 1 минуту?'
+        ru='Чтобы я мои рекомендации были точнее и более персонализированными, нам нужно познакомиться немного поближе. Хотите заполнить профиль за 1 минуту?',
+        es='Para que mis recomendaciones sean más precisas y personalizadas, necesitamos conocernos un poco mejor. ¿Quieres completar un perfil en 1 minuto?'
     ),
     'profile': TranslatedMessage(
         en='Fill out the profile',
-        ru='Заполнить профиль'
+        ru='Заполнить профиль',
+        es='Completar el perfil'
     ),
     'skip': TranslatedMessage(
         en='Skip',
-        ru='Пропустить'
+        ru='Пропустить',
+        es='Saltar'
     ),
     'birth_date': TranslatedMessage(
         en='🗓 Please, enter your birth date in the format DD.MM.YYYY (YYYY-MM-DD, MM/DD/YYYY also work)',
-        ru='🗓 Пожалуйста, введите вашу дату рождения в формате ДД.ММ.ГГГГ (ГГГГ-ММ-ДД, ММ/ДД/ГГГГ тоже подойдут)'
+        ru='🗓 Пожалуйста, введите вашу дату рождения в формате ДД.ММ.ГГГГ (ГГГГ-ММ-ДД, ММ/ДД/ГГГГ тоже подойдут)',
+        es='🗓 Por favor, ingrese su fecha de nacimiento en el formato DD.MM.AAAA (AAAA-MM-DD, MM/DD/AAAA también funcionan)'
     ),
     'sex': TranslatedMessage(
         en='Now choose your biological sex 🙏',
-        ru='Теперь выберите пол 🙏'
+        ru='Теперь выберите пол 🙏',
+        es='Ahora elige tu sexo biológico 🙏'
     ),
     'male': TranslatedMessage(
         en='Male 🕺',
-        ru='Мужской 🕺'
+        ru='Мужской 🕺',
+        es='Masculino 🕺'
     ),
     'female': TranslatedMessage(
         en='Female 🏃‍♀️',
-        ru='Женский 🏃‍♀️'
+        ru='Женский 🏃‍♀️',
+        es='Femenino 🏃‍♀️'
     ),
     'other': TranslatedMessage(
         en='Other',
-        ru='Другое 🐈'
+        ru='Другое 🐈',
+        es='Otro 🐈'
     ),
     'mass': TranslatedMessage(
         en='Please, enter your mass in kg',
-        ru='Пожалуйста, введите ваш вес в кг'
+        ru='Пожалуйста, введите ваш вес в кг',
+        es='Por favor, ingrese su masa en kg'
     ),
     'height': TranslatedMessage(
         en='🦒 Please, enter your height in cm',
-        ru='🦒 Пожалуйста, введите ваш рост в см'
+        ru='🦒 Пожалуйста, введите ваш рост в см',
+        es='🦒 Por favor, ingrese su altura en cm'
     ),
     'eats_meat': TranslatedMessage(
         en='🥩 Do you eat meat?',
-        ru='🥩 Вы едите мясо?'
+        ru='🥩 Вы едите мясо?',
+        es='🥩 ¿Comes carne?'
     ),
     'eats_fish': TranslatedMessage(
         en='🐟 Do you eat fish?',
-        ru='🐟 Вы едите рыбу?'
+        ru='🐟 Вы едите рыбу?',
+        es='🐟 ¿Comes pescado?'
     ),
     'eats_dairy': TranslatedMessage(
         en='🥛 Do you eat dairy products?',
-        ru='🥛 Вы употребляете молочные продукты?'
+        ru='🥛 Вы употребляете молочные продукты?',
+        es='🥛 ¿Comes productos lácteos?'
     ),
     'eats_eggs': TranslatedMessage(
         en='🍳 Do you eat eggs?',
-        ru='🍳 Вы едите яйца?'
+        ru='🍳 Вы едите яйца?',
+        es='🍳 ¿Comes huevos?'
     ),
     'yes': TranslatedMessage(
         en='👍 Yes',
-        ru='👍 Да'
+        ru='👍 Да',
+        es='👍 Sí'
     ),
     'no': TranslatedMessage(
         en='🙅 No',
-        ru='🙅 Нет'
+        ru='🙅 Нет',
+        es='🙅 No'
+
     ),
     'yes_or_no': TranslatedMessage(
         en='Please, use the buttons below to answer',
-        ru='Пожалуйста, воспользуйтесь кнопками ниже, чтобы ответить'
+        ru='Пожалуйста, воспользуйтесь кнопками ниже, чтобы ответить',
+        es='Por favor, use los botones de abajo para responder'
     ),
     'description': TranslatedMessage(
         en='📝 Please, briefly tell me about your goals regarding nutrition and fitness, add important details like your allrgies, food preferences, etc',
-        ru='📝 Пожалуйста, кратко расскажите мне о ваших целях в области питания и фитнеса, добавьте важные детали, такие как ваша аллергия, предпочтения в еде и т.д.'
+        ru='📝 Пожалуйста, кратко расскажите мне о ваших целях в области питания и фитнеса, добавьте важные детали, такие как ваша аллергия, предпочтения в еде и т.д.',
+        es='📝 Por favor, cuéntame brevemente sobre tus objetivos en nutrición y fitness, agrega detalles importantes como tus alergias, preferencias alimentarias, etc.'
     ),
     'email': TranslatedMessage(
         en='📧 Please enter your email address. No spam or mailings!',
-        ru='📧 Пожалуйста, введите ваш email. Никакого спама или рассылок!'
+        ru='📧 Пожалуйста, введите ваш email. Никакого спама или рассылок!',
+        es='📧 Por favor, ingrese su dirección de correo electrónico. ¡Sin spam ni correos electrónicos!'
     ),
     'complete_consultation': TranslatedMessage(
         en='✅ Complete consultation',
-        ru='✅ Завершить консультацию'
+        ru='✅ Завершить консультацию',
+        es='✅ Consulta completa'
     )
 })
 
