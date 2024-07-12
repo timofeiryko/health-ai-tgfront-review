@@ -18,6 +18,7 @@ load_dotenv()
 SUPPORTED_LANGS = {
     'en': 'English',
     'ru': 'Русский',
+    'es': 'Español',
 }
 
 class RegistrationStates(StatesGroup):
@@ -140,5 +141,4 @@ def validated_past_date(date_string, date_formats=['%d.%m.%Y', '%Y-%m-%d', '%m/%
                 raise ValueError("Date must be in the past.")
 
     raise ValueError(f"Invalid date format or date not in the past. Please use one of these formats: {', '.join(date_formats)}")
-
 
