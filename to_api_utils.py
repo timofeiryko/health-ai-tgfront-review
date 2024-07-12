@@ -53,6 +53,8 @@ async def save_user_form(registration_form: dict, client: httpx.AsyncClient):
         response = await client.post(f'{BACKEND_API_ENDPOINT}/users', json=user_data, headers=HEADERS)
         response.raise_for_status()
 
+        # TODO DON'T LOG PASSWORDS!!!
+
 @retry(tries=2)
 async def set_profile_fields(profile_fields: dict, user_id: Optional[dict]=None, user_email: Optional[str]=None, client: httpx.AsyncClient=None):
     """Saves the user profile fields to the API"""
