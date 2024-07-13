@@ -80,4 +80,3 @@ async def set_profile_fields(profile_fields: dict, user_id: Optional[dict]=None,
     else:
         response.raise_for_status()
 
-    

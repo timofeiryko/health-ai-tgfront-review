@@ -3,11 +3,11 @@
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram import Bot, Dispatcher
 
 from flag import flag
 from dotenv import load_dotenv
 
-import os, sys
 from typing import Callable
 from datetime import datetime
 
@@ -115,6 +115,9 @@ async def eats_choice_handler(message: Message, state: FSMContext, next_state: C
 def generate_dummy_email(prefix: str, external_id: int) -> str:
     return f"{prefix}.{external_id}@dummy.com"
 
+def extract_external_id(email: str) -> int:
+    return int(email.split('@')[0].split('.')[1])
+
 def validated_past_date(date_string, date_formats=['%d.%m.%Y', '%Y-%m-%d', '%m/%d/%Y']) -> datetime:
     """
     Validates a date string and checks if it represents a past date.
@@ -142,3 +145,15 @@ def validated_past_date(date_string, date_formats=['%d.%m.%Y', '%Y-%m-%d', '%m/%
 
     raise ValueError(f"Invalid date format or date not in the past. Please use one of these formats: {', '.join(date_formats)}")
 
+
+class DailyCheckStates(StatesGroup):
+    waiting_for_level = State()
+    waiting_for_notes = State()
+
+def get_level_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
+
+    keyboard = []
+    for i in range(1, 11):
+        keyboard.append(KeyboardButton(text=str(i)))
+    
+    return ReplyKeyboardMarkup(keyboard=[keyboard], resize_keyboard=True)

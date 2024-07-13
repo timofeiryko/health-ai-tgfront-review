@@ -5,7 +5,7 @@ import os, sys
 from aiogram import Bot, Dispatcher, html, F
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Command
 from aiogram.types import (
     KeyboardButton,
     Message,
@@ -14,11 +14,29 @@ from aiogram.types import (
 )
 from aiogram.fsm.context import FSMContext
 
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.jobstores.redis import RedisJobStore
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.base import StorageKey
+from apscheduler_di import ContextSchedulerDecorator
+
 from translated_messages import MESSAGES_DICT
-from utils import RegistrationStates, get_lang_keyboard, get_sex_keyboard, check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
+from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard
+from utils import check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
 from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
 
 TOKEN = os.getenv('TG_BOT_TOKEN')
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+storage = MemoryStorage()
+
+JOBSTORES = {
+    'default': RedisJobStore(jobs_key='jobs', run_times_key='run_times', host='localhost', port=6379)
+}
+
+UPDATE_INTERVAL = 15
+
+scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=JOBSTORES))
+scheduler.ctx.add_instance(bot, Bot)
 
 # All handlers should be attached to the Router (or Dispatcher)
 dp = Dispatcher()
@@ -37,21 +55,6 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(message_text, reply_markup = get_lang_keyboard())
 
 # TODO: ANOTHER COMMAND AND FDSM TO CHANGE LANGUAGE PROFILE SETTINGS, NOT JUST /start COMMAND
-
-# Handler that reacts to /change_language command and redirects to the language selection
-# @dp.message(CommandStart('change_language'))
-# async def change_language(message: Message, state: FSMContext) -> None:
-#     await state.set_state(RegistrationStates.change_language)
-#     # for now preferred_lang = 'en' as default, later it will be taken from the database with Django Ninja API
-#     preferred_lang = 'en'
-#     message_text = MESSAGES_DICT['change_language'][preferred_lang]
-#     await message.answer(message_text, reply_markup = get_lang_keyboard())
-
-# handler to redirect from change_language to language selection
-# @dp.message(RegistrationStates.change_language)
-# async def change_language(message: Message, state: FSMContext) -> None:
-#     await process_lang(message, state)
-
     
 @dp.message(RegistrationStates.language)
 async def process_lang(message: Message, state: FSMContext) -> None:
@@ -385,8 +388,12 @@ async def consult(message: Message, state: FSMContext) -> None:
                 response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/complete/{thread_id}', headers=HEADERS)
                 response.raise_for_status()
             message_text = response.json()['text']
+
             await state.set_state(RegistrationStates.initial_consultation_completed)
             await message.answer(message_text, reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN)
+
+            # Send regular messages to this user
+            scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_test', replace_existing=True)
             
         else:
             # continue the consultation
@@ -407,16 +414,77 @@ async def consult(message: Message, state: FSMContext) -> None:
         await message.answer("An error occurred while sending the message. Please, try again later. Take into account that images or voice messages are not supported yet. Try to wake me up with /start command!")
     
 
-@dp.message()
+@dp.message(F.text, Command('test'))
+async def test(message: Message, state: FSMContext) -> None:
+    """This handler is for testing purposes"""
+    scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_test', replace_existing=True)
+    await message.answer("Test job is scheduled")
+
+async def send_daily_check_message(telegram_id: str, bot: Bot = None) -> None:
+    """Sends a daily check message to the user"""
+
+    email = generate_dummy_email('daily_check', telegram_id)
+    print(f"Sending daily check message to {email}")
+    # later we will generate message using API, but for now we will just send a dummy message
+    message_text = "How are you feeling today? Please rate your mood from 1 to 10."
+
+    # change state to waiting_for_level
+    key = StorageKey(bot.id, telegram_id, telegram_id)
+    user_context = FSMContext(dp.storage, key)
+    await user_context.set_state(DailyCheckStates.waiting_for_level)
+    state = await user_context.get_state()
+    print(f"State: {state}")
+    await bot.send_message(chat_id=telegram_id, text=message_text, reply_markup=get_level_keyboard('en'))
+
+@dp.message(DailyCheckStates.waiting_for_level)
+async def daily_check(message: Message, state: FSMContext) -> None:
+    """
+    This handler receives the daily check answers
+    """
+
+    print('PROCESSING LEVEL')
+
+    # check that the message text is on of the numbers from 1 to 10, ask to use keyboard if not
+    if message.text not in [str(i) for i in range(1, 11)]:
+        correct_message_text = MESSAGES_DICT['yes_or_no']['en'] # TODO get the preferred_lang from the user data
+        await message.answer(correct_message_text, reply_markup=get_level_keyboard('en'))
+        return
+
+    user_email = generate_dummy_email('tg', message.from_user.id)
+    level = int(message.text)
+    print(f"Level: {level} for user {user_email} ready to save")
+
+    await state.set_state(DailyCheckStates.waiting_for_notes)
+    await message.answer("Thank you for your answer! Your mood level is saved. Now add some notes")
+
+@dp.message(DailyCheckStates.waiting_for_notes)
+async def daily_check_notes(message: Message, state: FSMContext) -> None:
+    """
+    This handler receives the daily check notes
+    """
+
+    user_email = generate_dummy_email('tg', message.from_user.id)
+    notes = message.text
+    print(f"Notes: {notes} for user {user_email} ready to save")
+
+    await state.set_state(RegistrationStates.initial_consultation_completed)
+    await message.answer("Thank you for your notes! Your notes are saved. Have a nice day!")
+
+@dp.message(F.text)
 async def default_answer(message: Message, state: FSMContext) -> None:
     """
     This handler reacts to all other messages, it is similar to consult, but without completing the consultation
     """
+
+    state = await state.get_state()
+    print(f"ACTUAL STATE: {state}")
+
     # typing action
+    # TODO: FIX THIS
     try:
         user_email = generate_dummy_email('tg', message.from_user.id)
         data = await state.get_data()
-        thread_id = data['thread_id']
+        thread_id = data['thread_id'] # TODO: FIX check if thread_id is in the data and don't use it if it's not (start a new thread)
         await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
         async with get_async_client() as client:
             response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message.text})
@@ -427,9 +495,12 @@ async def default_answer(message: Message, state: FSMContext) -> None:
         logging.error(f"Error while sending the message: {e}")
         await message.answer("An error occurred while sending the message. Please, try again later. Take into account that images or voice messages are not supported yet. Try to wake me up with /start command!")
 
+
+
+
 async def main() -> None:
     # Initialize Bot instance with default bot properties which will be passed to all API calls
-    bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    scheduler.start()
     # And the run events dispatching
     await dp.start_polling(bot)
 
