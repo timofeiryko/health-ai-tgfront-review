@@ -1,0 +1,177 @@
+{
+    "metadata": {
+        "transaction_key": "deprecated",
+        "request_id": "9376b02f-c985-43ac-b701-e760c558f925",
+        "sha256": "a1ac90967fb4ae6d583b212c2a51601be9f6f21c28545a116b7ada2fdae97a22",
+        "created": "2024-07-28T12:50:18.352Z",
+        "duration": 12.68,
+        "channels": 1,
+        "models": [
+            "30089e05-99d1-4376-b32e-c263170674af"
+        ],
+        "model_info": {
+            "30089e05-99d1-4376-b32e-c263170674af": {
+                "name": "2-general-nova",
+                "version": "2024-01-09.29447",
+                "arch": "nova-2"
+            }
+        }
+    },
+    "results": {
+        "channels": [
+            {
+                "alternatives": [
+                    {
+                        "transcript": "I want to build muscles like and also get rid of sweets consumption like, cola, and other junk.",
+                        "confidence": 0.9807482,
+                        "words": [
+                            {
+                                "word": "i",
+                                "start": 0.96,
+                                "end": 1.1999999,
+                                "confidence": 0.68808043,
+                                "punctuated_word": "I"
+                            },
+                            {
+                                "word": "want",
+                                "start": 1.1999999,
+                                "end": 1.52,
+                                "confidence": 0.9395637,
+                                "punctuated_word": "want"
+                            },
+                            {
+                                "word": "to",
+                                "start": 1.52,
+                                "end": 1.76,
+                                "confidence": 0.9987301,
+                                "punctuated_word": "to"
+                            },
+                            {
+                                "word": "build",
+                                "start": 1.76,
+                                "end": 2.1599998,
+                                "confidence": 0.99722594,
+                                "punctuated_word": "build"
+                            },
+                            {
+                                "word": "muscles",
+                                "start": 2.1599998,
+                                "end": 2.6599998,
+                                "confidence": 0.9091079,
+                                "punctuated_word": "muscles"
+                            },
+                            {
+                                "word": "like",
+                                "start": 2.8799999,
+                                "end": 3.36,
+                                "confidence": 0.8277532,
+                                "punctuated_word": "like"
+                            },
+                            {
+                                "word": "and",
+                                "start": 3.36,
+                                "end": 3.86,
+                                "confidence": 0.54982,
+                                "punctuated_word": "and"
+                            },
+                            {
+                                "word": "also",
+                                "start": 5.2,
+                                "end": 5.7,
+                                "confidence": 0.9718561,
+                                "punctuated_word": "also"
+                            },
+                            {
+                                "word": "get",
+                                "start": 6.48,
+                                "end": 6.72,
+                                "confidence": 0.98781836,
+                                "punctuated_word": "get"
+                            },
+                            {
+                                "word": "rid",
+                                "start": 6.72,
+                                "end": 6.8799996,
+                                "confidence": 0.99933606,
+                                "punctuated_word": "rid"
+                            },
+                            {
+                                "word": "of",
+                                "start": 6.8799996,
+                                "end": 7.165,
+                                "confidence": 0.994144,
+                                "punctuated_word": "of"
+                            },
+                            {
+                                "word": "sweets",
+                                "start": 7.325,
+                                "end": 7.645,
+                                "confidence": 0.9869321,
+                                "punctuated_word": "sweets"
+                            },
+                            {
+                                "word": "consumption",
+                                "start": 7.645,
+                                "end": 8.145,
+                                "confidence": 0.9950938,
+                                "punctuated_word": "consumption"
+                            },
+                            {
+                                "word": "like",
+                                "start": 8.445,
+                                "end": 8.945,
+                                "confidence": 0.85658646,
+                                "punctuated_word": "like,"
+                            },
+                            {
+                                "word": "cola",
+                                "start": 9.805,
+                                "end": 10.305,
+                                "confidence": 0.8587459,
+                                "punctuated_word": "cola,"
+                            },
+                            {
+                                "word": "and",
+                                "start": 10.365,
+                                "end": 10.764999,
+                                "confidence": 0.99864227,
+                                "punctuated_word": "and"
+                            },
+                            {
+                                "word": "other",
+                                "start": 10.764999,
+                                "end": 11.165,
+                                "confidence": 0.760699,
+                                "punctuated_word": "other"
+                            },
+                            {
+                                "word": "junk",
+                                "start": 11.165,
+                                "end": 11.665,
+                                "confidence": 0.9807482,
+                                "punctuated_word": "junk."
+                            }
+                        ],
+                        "paragraphs": {
+                            "transcript": "\nI want to build muscles like and also get rid of sweets consumption like, cola, and other junk.",
+                            "paragraphs": [
+                                {
+                                    "sentences": [
+                                        {
+                                            "text": "I want to build muscles like and also get rid of sweets consumption like, cola, and other junk.",
+                                            "start": 0.96,
+                                            "end": 11.665
+                                        }
+                                    ],
+                                    "start": 0.96,
+                                    "end": 11.665,
+                                    "num_words": 18
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -27,9 +27,9 @@ MESSAGES_DICT: AttrDict[str, TranslatedMessage] = AttrDict({
         es='Guardando tu información...'
     ),
     'profile_or_skip': TranslatedMessage(
-        en='In order for my recommendations to be more accurate and personalized, we need to get to know each other a little better. Do you want to fill out a profile in 1 minute?',
-        ru='Чтобы я мои рекомендации были точнее и более персонализированными, нам нужно познакомиться немного поближе. Хотите заполнить профиль за 1 минуту?',
-        es='Para que mis recomendaciones sean más precisas y personalizadas, necesitamos conocernos un poco mejor. ¿Quieres completar un perfil en 1 minuto?'
+        en='In order for my recommendations to be more accurate and personalized, we need to get to know each other a little better ☺️',
+        ru='Чтобы я мои рекомендации были более точными и персонализированными, нам нужно познакомиться немного поближе ☺️',
+        es='Para que mis recomendaciones sean más precisas y personalizadas, necesitamos conocernos un poco mejor ☺️'
     ),
     'profile': TranslatedMessage(
         en='Fill out the profile',
@@ -126,7 +126,42 @@ MESSAGES_DICT: AttrDict[str, TranslatedMessage] = AttrDict({
         en='✅ Complete consultation',
         ru='✅ Завершить консультацию',
         es='✅ Consulta completa'
-    )
+    ),
+    'ask_lavel': TranslatedMessage(
+        en='📈 What is your oveall feeling level for this day?',
+        ru='📈 Каков ваш общий уровень самочувствия на этот день?',
+        es='📈 ¿Cuál es su nivel de sensación general para este día?'
+    ),
+    'mass_option_low': TranslatedMessage(
+        en="I don't know, but I'm thin",
+        ru='Не знаю, но я худой',
+        es='No lo sé, pero soy delgado'
+    ),
+    'mass_option_average': TranslatedMessage(
+        en="I don't know, but I'm average",
+        ru='Не знаю, но я средний',
+        es='No lo sé, pero soy promedio'
+    ),
+    'mass_option_high': TranslatedMessage(
+        en="I don't know, but I'm overweight",
+        ru='Не знаю, но я полный',
+        es='No lo sé, pero tengo sobrepeso'
+    ),
+    'height_option_low': TranslatedMessage(
+        en="I don't know, but I'm short",
+        ru='Не знаю, но я ниже среднего',
+        es='No lo sé, pero soy bajo'
+    ),
+    'height_option_average': TranslatedMessage(
+        en="I don't know, but I'm average",
+        ru='Не знаю, но я среднего роста',
+        es='No lo sé, pero soy promedio'
+    ),
+    'height_option_high': TranslatedMessage(
+        en="I don't know, but I'm tall",
+        ru='Не знаю, но я высокий',
+        es='No lo sé, pero soy alto'
+    ),
 })
 
 

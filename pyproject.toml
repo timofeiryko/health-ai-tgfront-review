@@ -17,6 +17,7 @@ apscheduler = "^3.10.4"
 redis = "^5.0.7"
 apscheduler-di = "^0.1.0"
 sqlalchemy = "^2.0.31"
+deepgram-sdk = "^3.4.0"
 
 
 [build-system]

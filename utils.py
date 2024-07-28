@@ -3,6 +3,7 @@
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
+from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram import Bot, Dispatcher
 
 from flag import flag
@@ -61,6 +62,28 @@ def get_sex_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
     keyboard.append(KeyboardButton(text=MESSAGES_DICT['other'][preferred_lang]))
     
     return ReplyKeyboardMarkup(keyboard=[keyboard], resize_keyboard=True)
+
+def get_mass_options_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
+    
+    builder = ReplyKeyboardBuilder()
+    
+    options = [KeyboardButton(text=option) for option in [MESSAGES_DICT['mass_option_low'][preferred_lang], MESSAGES_DICT['mass_option_high'][preferred_lang]]]
+    builder.row(*options)
+        
+    builder.row(KeyboardButton(text=MESSAGES_DICT['mass_option_average'][preferred_lang]))
+    
+    return builder.as_markup(resize_keyboard=True)
+
+def get_height_options_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
+    
+    builder = ReplyKeyboardBuilder()
+
+    options = [KeyboardButton(text=option) for option in [MESSAGES_DICT['height_option_low'][preferred_lang], MESSAGES_DICT['height_option_high'][preferred_lang]]]
+    builder.row(*options)
+    
+    builder.row(KeyboardButton(text=MESSAGES_DICT['height_option_average'][preferred_lang]))
+    
+    return builder.as_markup(resize_keyboard=True)
 
 def check_extract_lang(message: Message):
     """Returns lang code if language can be saved, False if it's not supported"""
@@ -153,7 +176,7 @@ class DailyCheckStates(StatesGroup):
 def get_level_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
 
     keyboard = []
-    for i in range(1, 11):
+    for i in range(1, 6):
         keyboard.append(KeyboardButton(text=str(i)))
     
     return ReplyKeyboardMarkup(keyboard=[keyboard], resize_keyboard=True)
