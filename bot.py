@@ -420,12 +420,19 @@ async def initial_consultation(message: Message, state: FSMContext) -> None:
             
         # update state with thread_id and preferred_lang
         await state.update_data(thread_id=response.json()['thread_id'])
+        # SAVE THREAD_ID TO THE DATABASE HERE
         await state.update_data(preferred_lang=preferred_lang)
+        
+        raw_text = text=response.json()['text']
+        async with get_async_client() as client:
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/split')
+            response.raise_for_status 
+        message_text = response.json()['text']
         
 
         await state.set_state(RegistrationStates.consulting)
         await message.answer(
-            text=response.json()['text'],
+            text=message_text,
             reply_markup=get_consultation_markup(preferred_lang),
             parse_mode=ParseMode.MARKDOWN
         )
@@ -525,7 +532,13 @@ async def send_daily_check_message(telegram_id: str, bot: Bot = None) -> None:
     state = await user_context.get_state()
     await user_context.update_data(greeting=message_text)
     await bot.send_message(chat_id=telegram_id, text=message_text)
+    
+async def send_daily_initial_piece(telegram_id: str, bot: Bot = None) -> None:
+    """Sends a daily check message to the user"""
 
+    user_email = generate_dummy_email('tg', telegram_id)
+    async with get_async_client() as client:
+        response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/start', headers=HEADERS)
 @dp.message(DailyCheckStates.waiting_for_level)
 async def daily_check(message: Message, state: FSMContext) -> None:
     """
