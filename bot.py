@@ -25,7 +25,7 @@ from translated_messages import MESSAGES_DICT
 from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard
 from utils import check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
 from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
-from voice import voice_to_text, clean_audio_files
+from voice import voice_to_text, clean_audio_file
 
 TOKEN = os.getenv('TG_BOT_TOKEN')
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -78,7 +78,7 @@ async def process_lang(message: Message, state: FSMContext) -> None:
         user_data = {
             'full_name': message.from_user.full_name,
             'external_id': message.from_user.id,
-            'preferred_lang': preferred_lang
+            'preferred_lang': preferred_lang,
         }
 
         async with get_async_client() as client:
@@ -88,9 +88,9 @@ async def process_lang(message: Message, state: FSMContext) -> None:
         # get the current state
         current_state = await state.get_state()
         if current_state == RegistrationStates.language:
-            await state.set_state(RegistrationStates.description)
-            message_text = f"{MESSAGES_DICT['profile_or_skip'][preferred_lang]}\n\n{MESSAGES_DICT['description'][preferred_lang]}"
-            await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+            await state.set_state(RegistrationStates.sex)
+            message_text = f"{MESSAGES_DICT['profile_or_skip'][preferred_lang]}\n\n{MESSAGES_DICT['sex'][preferred_lang]}"
+            await message.answer(message_text, reply_markup=get_sex_keyboard(preferred_lang))
         # elif current_state == RegistrationStates.change_language:
         #     await state.clear()
         #     message_text = MESSAGES_DICT['completed'][preferred_lang]
@@ -161,18 +161,18 @@ async def process_sex(message: Message, state: FSMContext) -> None:
     
     if message.text == MESSAGES_DICT['male'][preferred_lang]:
         await state.update_data(sex='M')
-        await state.set_state(RegistrationStates.mass)
-        await message.answer(MESSAGES_DICT['mass'][preferred_lang], reply_markup=get_mass_options_keyboard(preferred_lang))
+        await state.set_state(RegistrationStates.height)
+        await message.answer(MESSAGES_DICT['height'][preferred_lang], reply_markup=get_height_options_keyboard(preferred_lang))
         
     elif message.text == MESSAGES_DICT['female'][preferred_lang]:
         await state.update_data(sex='F')
-        await state.set_state(RegistrationStates.mass)
-        await message.answer(MESSAGES_DICT['mass'][preferred_lang], reply_markup=get_mass_options_keyboard(preferred_lang))
+        await state.set_state(RegistrationStates.height)
+        await message.answer(MESSAGES_DICT['height'][preferred_lang], reply_markup=get_height_options_keyboard(preferred_lang))
         
     elif message.text == MESSAGES_DICT['other'][preferred_lang]:
         await state.update_data(sex='O')
-        await state.set_state(RegistrationStates.mass)
-        await message.answer(MESSAGES_DICT['mass'][preferred_lang], reply_markup=get_mass_options_keyboard(preferred_lang))
+        await state.set_state(RegistrationStates.height)
+        await message.answer(MESSAGES_DICT['height'][preferred_lang], reply_markup=get_height_options_keyboard(preferred_lang))
     
     else:
         await message.answer(MESSAGES_DICT['yes_or_no'][preferred_lang], reply_markup=get_sex_keyboard(preferred_lang))
@@ -187,73 +187,27 @@ async def process_mass(message: Message, state: FSMContext) -> None:
 
     data = await state.get_data()
     preferred_lang = data['preferred_lang']
-    sex = data['sex']
+    height = data['height']
     
-    FLAG = False
-    
-    if message.text == MESSAGES_DICT['mass_option_low'][preferred_lang] and sex == 'M':
-        await state.update_data(mass=60)
-    elif message.text == MESSAGES_DICT['mass_option_low'][preferred_lang] and sex == 'F':
-        await state.update_data(mass=50)
-    elif message.text == MESSAGES_DICT['mass_option_average'][preferred_lang] and sex == 'M':
-        await state.update_data(mass=70)
-    elif message.text == MESSAGES_DICT['mass_option_average'][preferred_lang] and sex == 'F':
-        await state.update_data(mass=60)
-    elif message.text == MESSAGES_DICT['mass_option_high'][preferred_lang] and sex == 'M':
-        await state.update_data(mass=80)
-    elif message.text == MESSAGES_DICT['mass_option_high'][preferred_lang] and sex == 'F':
-        await state.update_data(mass=70)
+    if message.text == MESSAGES_DICT['mass_option_low'][preferred_lang]:
+        bmi = 19
+        mass = round(bmi * (height / 100) ** 2)
+        await state.update_data(mass=mass)
+    elif message.text == MESSAGES_DICT['mass_option_average'][preferred_lang]:
+        bmi = 22
+        mass = round(bmi * (height / 100) ** 2)
+        await state.update_data(mass=mass)
+    elif message.text == MESSAGES_DICT['mass_option_high'][preferred_lang]:
+        bmi = 26
+        mass = round(bmi * (height / 100) ** 2)
+        await state.update_data(mass=mass)
     elif message.text in [str(i) for i in range(2, 1000)]:
-        FLAG = True
-        pass
+        await state.update_data(mass=message.text)
     else:
-        await state.set_state(RegistrationStates.mass)
         message_text = MESSAGES_DICT['mass'][preferred_lang]
         await message.answer(message_text, reply_markup=get_mass_options_keyboard(preferred_lang))
         return
     
-    if FLAG:
-        await state.update_data(mass=message.text)
-    
-    await state.set_state(RegistrationStates.height)
-    message_text = MESSAGES_DICT['height'][preferred_lang]
-    await message.answer(message_text, reply_markup=get_height_options_keyboard(preferred_lang))
-
-@dp.message(RegistrationStates.height)
-async def process_height(message: Message, state: FSMContext) -> None:
-    """
-    This handler receives user height
-    """
-
-    data = await state.get_data()
-    preferred_lang = data['preferred_lang']
-    sex = data['sex']
-    
-    FLAG = False
-    
-    if message.text == MESSAGES_DICT['height_option_low'][preferred_lang] and sex == 'M':
-        await state.update_data(height=165)
-    elif message.text == MESSAGES_DICT['height_option_low'][preferred_lang] and sex == 'F':
-        await state.update_data(height=155)
-    elif message.text == MESSAGES_DICT['height_option_average'][preferred_lang] and sex == 'M':
-        await state.update_data(height=175)
-    elif message.text == MESSAGES_DICT['height_option_average'][preferred_lang] and sex == 'F':
-        await state.update_data(height=165)
-    elif message.text == MESSAGES_DICT['height_option_high'][preferred_lang] and sex == 'M':
-        await state.update_data(height=185)
-    elif message.text == MESSAGES_DICT['height_option_high'][preferred_lang] and sex == 'F':
-        await state.update_data(height=175)
-    elif message.text in [str(i) for i in range(50, 300)]:
-        FLAG = True
-        pass
-    else:
-        await state.set_state(RegistrationStates.height)
-        message_text = MESSAGES_DICT['height'][preferred_lang]
-        await message.answer(message_text, reply_markup=get_height_options_keyboard(preferred_lang))
-        return
-    
-    if FLAG:
-        await state.update_data(height=message.text)
     await state.set_state(RegistrationStates.eats_meat)
     message_text = MESSAGES_DICT['eats_meat'][preferred_lang]
     await message.answer(message_text, reply_markup=ReplyKeyboardMarkup(
@@ -265,6 +219,40 @@ async def process_height(message: Message, state: FSMContext) -> None:
         ],
         resize_keyboard=True
     ))
+
+@dp.message(RegistrationStates.height)
+async def process_height(message: Message, state: FSMContext) -> None:
+    """
+    This handler receives user height
+    """
+
+    data = await state.get_data()
+    preferred_lang = data['preferred_lang']
+    sex = data['sex']
+    
+    if message.text == MESSAGES_DICT['height_option_low'][preferred_lang] and (sex == 'M' or sex == 'O'):
+        await state.update_data(height=165)
+    elif message.text == MESSAGES_DICT['height_option_low'][preferred_lang] and sex == 'F':
+        await state.update_data(height=155)
+    elif message.text == MESSAGES_DICT['height_option_average'][preferred_lang] and (sex == 'M' or sex == 'O'):
+        await state.update_data(height=175)
+    elif message.text == MESSAGES_DICT['height_option_average'][preferred_lang] and sex == 'F':
+        await state.update_data(height=165)
+    elif message.text == MESSAGES_DICT['height_option_high'][preferred_lang] and (sex == 'M' or sex == 'O'):
+        await state.update_data(height=185)
+    elif message.text == MESSAGES_DICT['height_option_high'][preferred_lang] and sex == 'F':
+        await state.update_data(height=175)
+    elif message.text in [str(i) for i in range(50, 300)]:
+        await state.update_data(height=message.text)
+    else:
+        message_text = MESSAGES_DICT['height'][preferred_lang]
+        await message.answer(message_text, reply_markup=get_height_options_keyboard(preferred_lang))
+        return
+    
+    await state.set_state(RegistrationStates.mass)
+    message_text = MESSAGES_DICT['mass'][preferred_lang]
+    await message.answer(message_text, reply_markup=get_mass_options_keyboard(preferred_lang))
+    
 
 @dp.message(RegistrationStates.eats_meat)
 async def process_eats_meat(message: Message, state: FSMContext) -> None:
@@ -299,14 +287,13 @@ async def process_eats_dairy(message: Message, state: FSMContext) -> None:
     """
     data = await state.get_data()
     preferred_lang = data['preferred_lang']
-    await eats_choice_handler(message, state, RegistrationStates.description, MESSAGES_DICT['description'][preferred_lang], last=True)
+    await eats_choice_handler(message, state, RegistrationStates.description, MESSAGES_DICT['saving_info'][preferred_lang], last=True)
     data = await state.get_data()
     await state.update_data(eats_dairy=data['eats'])
     
-    await state.set_state(RegistrationStates.completed)
-    message_text = MESSAGES_DICT['saving_info'][preferred_lang]
-    await message.answer(message_text)
-    await all_saved(message, state)
+    await state.set_state(RegistrationStates.description)
+    message_text = MESSAGES_DICT['description'][preferred_lang]
+    await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
 
 @dp.message(RegistrationStates.description)
 async def process_description(message: Message, state: FSMContext) -> None:
@@ -334,13 +321,12 @@ async def process_description(message: Message, state: FSMContext) -> None:
         await bot.download_file(file_path, file_name)
         
         transcription = await voice_to_text(file_name, preferred_lang)
-        print(transcription)
-        await clean_audio_files('files')
+        await clean_audio_file(f"files/audio{file_id}.mp3")
         await state.update_data(description=transcription)
-    
-    await state.set_state(RegistrationStates.birth_date)
-    message_text = MESSAGES_DICT['birth_date'][preferred_lang]
-    await message.answer(message_text)
+        
+    await state.set_state(RegistrationStates.completed)
+    message_text = MESSAGES_DICT['saving_info'][preferred_lang]
+    await all_saved(message, state)
             
 @dp.message(RegistrationStates.completed)
 async def all_saved(message: Message, state: FSMContext) -> None:
@@ -453,6 +439,29 @@ async def initial_consultation(message: Message, state: FSMContext) -> None:
 async def consult(message: Message, state: FSMContext) -> None:
     """This handler consults the user and finishes the consultation, saving summary to the database through API"""
     
+    # Check that message is in supported content types
+    if message.content_type not in SUPPORTED_CONTENT_TYPES:
+        await message.answer("Sorry, but I can't process this type of message. Please, use text or voice messages.")
+        return
+    
+    data = await state.get_data()
+    preferred_lang = data['preferred_lang']
+    
+    if message.content_type == 'text':
+        message_text = message.text
+        
+    elif message.content_type == 'voice':
+        
+        file_id = message.voice.file_id  
+        file = await bot.get_file(file_id)  
+        file_path = file.file_path  
+        file_name = f"files/audio{file_id}.mp3"
+        await bot.download_file(file_path, file_name)
+        
+        transcription = await voice_to_text(file_name, preferred_lang)
+        await clean_audio_file(f"files/audio{file_id}.mp3")
+        message_text = transcription
+    
     try:
     
         data = await state.get_data()
@@ -479,7 +488,7 @@ async def consult(message: Message, state: FSMContext) -> None:
             # typing action
             await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
             async with get_async_client() as client:
-                response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message.text})
+                response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message_text})
                 response.raise_for_status()
             message_text = response.json()['text']
             await message.answer(
@@ -582,6 +591,30 @@ async def default_answer(message: Message, state: FSMContext) -> None:
     This handler reacts to all other messages, it is similar to consult, but without completing the consultation
     """
 
+    if message.content_type not in SUPPORTED_CONTENT_TYPES:
+        await message.answer("Sorry, but I can't process this type of message. Please, use text or voice messages.")
+        return
+    
+    data = await state.get_data()
+    preferred_lang = data['preferred_lang']
+    
+    if message.content_type == 'text':
+        message_text = message.text
+        
+    elif message.content_type == 'voice':
+        
+        # TODO DRY
+        
+        file_id = message.voice.file_id  
+        file = await bot.get_file(file_id)  
+        file_path = file.file_path  
+        file_name = f"files/audio{file_id}.mp3"
+        await bot.download_file(file_path, file_name)
+        
+        transcription = await voice_to_text(file_name, preferred_lang)
+        await clean_audio_file(f"files/audio{file_id}.mp3")
+        message_text = transcription
+
     data = await state.get_data()
     user_email = generate_dummy_email('tg', message.from_user.id)
     
@@ -596,7 +629,7 @@ async def default_answer(message: Message, state: FSMContext) -> None:
     await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
     try:
         async with get_async_client() as client:
-            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message.text})
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message_text})
             response.raise_for_status()
     except Exception as e:
         logging.error(f"Error while sending the message: {e}. More info:\n {traceback.format_exc()}")

@@ -41,8 +41,6 @@ async def voice_to_text(audio_file_path: str, lang: str) -> str:
     return file_response.to_dict()['results']['channels'][0]['alternatives'][0]['transcript']
     
 
-async def clean_audio_files(dir_path):
-    files = [f for f in os.listdir(dir_path) if f.endswith('.mp3') or f.endswith('.wav')]
-    for file_name in files:
-        file_path = os.path.join(dir_path, file_name)
-        await aiofiles.os.remove(file_path)
+async def clean_audio_file(file_path: str) -> None:
+    """Deletes audio file"""
+    await aiofiles.os.remove(file_path)

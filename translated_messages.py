@@ -113,9 +113,9 @@ MESSAGES_DICT: AttrDict[str, TranslatedMessage] = AttrDict({
         es='Por favor, use los botones de abajo para responder'
     ),
     'description': TranslatedMessage(
-        en='📝 Please, briefly tell me about your goals regarding nutrition and fitness, add important details like your allrgies, food preferences, etc',
-        ru='📝 Пожалуйста, кратко расскажите мне о ваших целях в области питания и фитнеса, добавьте важные детали, такие как ваша аллергия, предпочтения в еде и т.д.',
-        es='📝 Por favor, cuéntame brevemente sobre tus objetivos en nutrición y fitness, agrega detalles importantes como tus alergias, preferencias alimentarias, etc.'
+        en='📝 Please, briefly tell me about your goals regarding nutrition and fitness, add important details like your allrgies, food preferences, etc\n\n🗣 You can also use voice message!',
+        ru='📝 Пожалуйста, кратко расскажите мне о ваших целях в области питания и фитнеса, добавьте важные детали, такие как ваша аллергия, предпочтения в еде и т.д.\n\n🗣 Вы также можете использовать голосовое сообщение!',
+        es='📝 Por favor, cuéntame brevemente sobre tus objetivos en nutrición y fitness, agrega detalles importantes como tus alergias, preferencias alimentarias, etc.\n\n🗣 ¡También puedes usar mensajes de voz!'
     ),
     'email': TranslatedMessage(
         en='📧 Please enter your email address. No spam or mailings!',
