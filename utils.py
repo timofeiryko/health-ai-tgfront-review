@@ -85,6 +85,15 @@ def get_height_options_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
     
     return builder.as_markup(resize_keyboard=True)
 
+def get_consultation_markup(preferred_lang: str):
+    return ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=MESSAGES_DICT['complete_consultation'][preferred_lang])
+            ]
+        ], resize_keyboard=True
+    )
+
 def check_extract_lang(message: Message):
     """Returns lang code if language can be saved, False if it's not supported"""
 

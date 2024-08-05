@@ -22,7 +22,7 @@ from aiogram.fsm.storage.base import StorageKey
 from apscheduler_di import ContextSchedulerDecorator
 
 from translated_messages import MESSAGES_DICT
-from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard
+from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard, get_consultation_markup
 from utils import check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
 from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
 from voice import voice_to_text, clean_audio_file
@@ -383,15 +383,6 @@ async def all_saved(message: Message, state: FSMContext) -> None:
     await initial_consultation(message, state)
     await state.set_state(RegistrationStates.consulting)
 
-# TODO to utils.py
-def get_consultation_markup(preferred_lang: str):
-    return ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text=MESSAGES_DICT['complete_consultation'][preferred_lang])
-            ]
-        ], resize_keyboard=True
-    )
 
 @dp.message(RegistrationStates.completed)
 async def initial_consultation(message: Message, state: FSMContext) -> None:
@@ -407,35 +398,38 @@ async def initial_consultation(message: Message, state: FSMContext) -> None:
         async with get_async_client() as client:
             response = await client.get(f'{BACKEND_API_ENDPOINT}/profiles/email/{email}', headers=HEADERS)
         preferred_lang = response.json()['preferred_lang']
+        
         # send typing action
         await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
+        
         async with get_async_client() as client:
+            
             response = await client.get(f'{BACKEND_API_ENDPOINT}/users/email/{email}', headers=HEADERS)
             response.raise_for_status()
+            user_email = response.json()['email']
             
-        user_email = response.json()['email']
-        async with get_async_client() as client:
-
             response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/start', headers=HEADERS)
+            response.raise_for_status()
+            thread_id = response.json()['thread_id']
+            raw_text = response.json()['text']
             
-        # update state with thread_id and preferred_lang
-        await state.update_data(thread_id=response.json()['thread_id'])
-        # SAVE THREAD_ID TO THE DATABASE HERE
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/split', headers=HEADERS, params={'advice': raw_text})
+            response.raise_for_status()
+            message_text = response.json()['text']            
+
+        await state.update_data(thread_id=thread_id)
         await state.update_data(preferred_lang=preferred_lang)
-        
-        raw_text = text=response.json()['text']
-        async with get_async_client() as client:
-            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/split')
-            response.raise_for_status 
-        message_text = response.json()['text']
         
 
         await state.set_state(RegistrationStates.consulting)
         await message.answer(
             text=message_text,
-            reply_markup=get_consultation_markup(preferred_lang),
+            reply_markup=ReplyKeyboardRemove(),
             parse_mode=ParseMode.MARKDOWN
         )
+        
+        # Send regular messages to this user
+        scheduler.add_job(send_daily_initial_piece, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_initial_consultation', replace_existing=True)
     
     except Exception as e:
         logging.error(f"Error while starting the initial consultation: {e}. More info:\n {traceback.format_exc()}")
@@ -500,7 +494,7 @@ async def consult(message: Message, state: FSMContext) -> None:
             message_text = response.json()['text']
             await message.answer(
                 text=message_text,
-                reply_markup=get_consultation_markup(preferred_lang),
+                reply_markup=ReplyKeyboardRemove(),
                 parse_mode=ParseMode.MARKDOWN
             )
     
@@ -529,16 +523,39 @@ async def send_daily_check_message(telegram_id: str, bot: Bot = None) -> None:
     key = StorageKey(bot.id, telegram_id, telegram_id)
     user_context = FSMContext(dp.storage, key)
     await user_context.set_state(DailyCheckStates.waiting_for_notes)
-    state = await user_context.get_state()
     await user_context.update_data(greeting=message_text)
     await bot.send_message(chat_id=telegram_id, text=message_text)
     
 async def send_daily_initial_piece(telegram_id: str, bot: Bot = None) -> None:
-    """Sends a daily check message to the user"""
-
+    """Sends a daily piece of advice on the initial stage"""
+    
     user_email = generate_dummy_email('tg', telegram_id)
     async with get_async_client() as client:
-        response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/start', headers=HEADERS)
+        response = await client.get(f'{BACKEND_API_ENDPOINT}/initial_advice_piece_count/{user_email}', headers=HEADERS)
+        response.raise_for_status()
+        number_of_pieces = int(response.json())
+        if number_of_pieces == 0:
+            
+            # complete the initial consultation
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/complete', headers=HEADERS)
+            response.raise_for_status()
+            
+            # set the state to initial_consultation_completed
+            key = StorageKey(bot.id, telegram_id, telegram_id)
+            user_context = FSMContext(dp.storage, key)
+            await user_context.set_state(RegistrationStates.initial_consultation_completed)
+            
+            # remove the job
+            scheduler.remove_job(f'{telegram_id}_initial_consultation')
+        else:
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/initial_advice_piece/{user_email}', headers=HEADERS)
+            response.raise_for_status()
+        
+    message_text = response.json()['text']
+    
+    await bot.send_message(chat_id=telegram_id, text=message_text)
+
+
 @dp.message(DailyCheckStates.waiting_for_level)
 async def daily_check(message: Message, state: FSMContext) -> None:
     """
