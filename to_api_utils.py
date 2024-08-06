@@ -25,7 +25,7 @@ def get_random_string(length: int) -> str:
 
 @asynccontextmanager
 async def get_async_client():
-    async with httpx.AsyncClient(transport=RETRY, timeout=20.0) as client:
+    async with httpx.AsyncClient(transport=RETRY, timeout=120.0) as client:
         yield client
 
 @retry(tries=2)

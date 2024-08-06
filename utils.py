@@ -2,8 +2,8 @@
 
 from aiogram.filters.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from aiogram import Bot, Dispatcher
 
 from flag import flag
@@ -189,3 +189,12 @@ def get_level_keyboard(preferred_lang: str) -> ReplyKeyboardMarkup:
         keyboard.append(KeyboardButton(text=str(i)))
     
     return ReplyKeyboardMarkup(keyboard=[keyboard], resize_keyboard=True)
+
+def get_inline_feedback_buttons(preferred_lang: str) -> InlineKeyboardMarkup:
+
+    builder = InlineKeyboardBuilder()
+
+    builder.add(InlineKeyboardButton(text=MESSAGES_DICT['helpful'][preferred_lang], callback_data='helpful_message'))
+    builder.add(InlineKeyboardButton(text=MESSAGES_DICT['not_helpful'][preferred_lang], callback_data='not_helpful_message'))
+    
+    return builder.as_markup()

@@ -123,9 +123,9 @@ MESSAGES_DICT: AttrDict[str, TranslatedMessage] = AttrDict({
         es='📧 Por favor, ingrese su dirección de correo electrónico. ¡Sin spam ni correos electrónicos!'
     ),
     'complete_consultation': TranslatedMessage(
-        en='✅ Complete consultation',
-        ru='✅ Завершить консультацию',
-        es='✅ Consulta completa'
+        en='✅ Finish for today',
+        ru='✅ Завершить на сегодня',
+        es='✅ Terminar por hoy'
     ),
     'ask_lavel': TranslatedMessage(
         en='📈 What is your oveall feeling level for this day?',
@@ -161,6 +161,21 @@ MESSAGES_DICT: AttrDict[str, TranslatedMessage] = AttrDict({
         en="I don't know, but I'm tall",
         ru='Не знаю, но я высокий',
         es='No lo sé, pero soy alto'
+    ),
+    'helpful': TranslatedMessage(
+        en='👍 Helpful',
+        ru='👍 Полезно',
+        es='👍 Útil'
+    ),
+    'not_helpful': TranslatedMessage(
+        en='👎 Not helpful',
+        ru='👎 Бесполезно',
+        es='👎 No útil'
+    ),
+    'thanks_for_feedback': TranslatedMessage(
+        en='Thank you for your feedback! It helps me to improve 🙏',
+        ru='Спасибо за ваш отзыв! Он помогает мне улучшаться 🙏',
+        es='¡Gracias por tu comentario! Me ayuda a mejorar 🙏'
     ),
 })
 

@@ -12,8 +12,12 @@ from aiogram.types import (
     Message,
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
+    CallbackQuery
 )
+import httpx
+
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.storage.redis import RedisStorage
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.redis import RedisJobStore
@@ -22,7 +26,7 @@ from aiogram.fsm.storage.base import StorageKey
 from apscheduler_di import ContextSchedulerDecorator
 
 from translated_messages import MESSAGES_DICT
-from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard, get_consultation_markup
+from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard, get_consultation_markup, get_inline_feedback_buttons
 from utils import check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
 from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
 from voice import voice_to_text, clean_audio_file
@@ -41,7 +45,8 @@ scheduler = ContextSchedulerDecorator(AsyncIOScheduler(jobstores=JOBSTORES))
 scheduler.ctx.add_instance(bot, Bot)
 
 # All handlers should be attached to the Router (or Dispatcher)
-dp = Dispatcher()
+redis_storage = RedisStorage.from_url('redis://localhost:6379')
+dp = Dispatcher(storage=redis_storage)
 
 # Bot can understand text and voice messages
 SUPPORTED_CONTENT_TYPES = ['text', 'voice']
@@ -148,9 +153,17 @@ async def process_birth_date(message: Message, state: FSMContext) -> None:
         return
 
     await state.update_data(birth_date=dt.strftime('%Y-%m-%d'))
-    await state.set_state(RegistrationStates.sex)
-    message_text = MESSAGES_DICT['sex'][preferred_lang]
-    await message.answer(message_text, reply_markup=get_sex_keyboard(preferred_lang))
+    await state.set_state(RegistrationStates.eats_meat)
+    message_text = MESSAGES_DICT['eats_meat'][preferred_lang]
+    await message.answer(message_text, reply_markup=ReplyKeyboardMarkup(
+        keyboard=[
+            [
+                KeyboardButton(text=MESSAGES_DICT['yes'][preferred_lang]),
+                KeyboardButton(text=MESSAGES_DICT['no'][preferred_lang]),
+            ]
+        ],
+        resize_keyboard=True
+    ))
 
 @dp.message(RegistrationStates.sex)
 async def process_sex(message: Message, state: FSMContext) -> None:
@@ -208,17 +221,9 @@ async def process_mass(message: Message, state: FSMContext) -> None:
         await message.answer(message_text, reply_markup=get_mass_options_keyboard(preferred_lang))
         return
     
-    await state.set_state(RegistrationStates.eats_meat)
-    message_text = MESSAGES_DICT['eats_meat'][preferred_lang]
-    await message.answer(message_text, reply_markup=ReplyKeyboardMarkup(
-        keyboard=[
-            [
-                KeyboardButton(text=MESSAGES_DICT['yes'][preferred_lang]),
-                KeyboardButton(text=MESSAGES_DICT['no'][preferred_lang]),
-            ]
-        ],
-        resize_keyboard=True
-    ))
+    await state.set_state(RegistrationStates.birth_date)
+    message_text = MESSAGES_DICT['birth_date'][preferred_lang]
+    await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
 
 @dp.message(RegistrationStates.height)
 async def process_height(message: Message, state: FSMContext) -> None:
@@ -424,7 +429,7 @@ async def initial_consultation(message: Message, state: FSMContext) -> None:
         await state.set_state(RegistrationStates.consulting)
         await message.answer(
             text=message_text,
-            reply_markup=ReplyKeyboardRemove(),
+            reply_markup=get_inline_feedback_buttons(preferred_lang),
             parse_mode=ParseMode.MARKDOWN
         )
         
@@ -466,43 +471,58 @@ async def consult(message: Message, state: FSMContext) -> None:
     try:
     
         data = await state.get_data()
-        thread_id = data['thread_id']
-        preferred_lang = data['preferred_lang']
         user_email = generate_dummy_email('tg', message.from_user.id)
-        
-        if message.text == MESSAGES_DICT['complete_consultation'][preferred_lang]:
-            # typing action
-            await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
-            async with get_async_client() as client:
-                response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/complete/{thread_id}', headers=HEADERS)
-                response.raise_for_status()
-            message_text = response.json()['text']
-
-            await state.set_state(RegistrationStates.initial_consultation_completed)
-            await message.answer(message_text, reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN)
-
-            # Send regular messages to this user
-            scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_test', replace_existing=True)
+        # get thread_id and preferred_lang from the database
+        async with get_async_client() as client:
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/profiles/email/{user_email}', headers=HEADERS)
+            preferred_lang = response.json()['preferred_lang']
             
-        else:
-            # continue the consultation
-            # typing action
-            await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
-            async with get_async_client() as client:
-                response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message_text})
-                response.raise_for_status()
-            message_text = response.json()['text']
-            await message.answer(
-                text=message_text,
-                reply_markup=ReplyKeyboardRemove(),
-                parse_mode=ParseMode.MARKDOWN
-            )
-    
+        thread_id = data['thread_id']
+        
+        # if message.text == MESSAGES_DICT['complete_consultation'][preferred_lang]:
+        #     # typing action
+        #     await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
+        #     async with get_async_client() as client:
+        #         response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/complete', headers=HEADERS)
+        #         response.raise_for_status()
+        #     message_text = response.json()['text']
+
+        #     await state.set_state(RegistrationStates.initial_consultation_completed)
+        #     await message.answer(message_text, reply_markup=ReplyKeyboardRemove(), parse_mode=ParseMode.MARKDOWN)
+
+        #     # Send regular messages to this user
+        #     scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_test', replace_existing=True)
+            
+        # else:
+        #     # continue the consultation
+        #     # typing action
+        await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
+        async with get_async_client() as client:
+            response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message_text})
+            response.raise_for_status()
+        message_text = response.json()['text']
+        await message.answer(
+            text=message_text,
+            reply_markup=get_inline_feedback_buttons(preferred_lang),
+            parse_mode=ParseMode.MARKDOWN
+        )
+            
     except Exception as e:
         logging.error(f"Error while sending the message: {e}. More info:\n {traceback.format_exc()}")
         traceback.print_exc()
-        await message.answer("An error occurred while sending the message. Please, try again later. Take into account that images or voice messages are not supported yet. Try to wake me up with /start command!")
+        await message.answer("An error occurred while sending the message. Please, try again later. You can also completely refill your profile with /start command!")
+ 
+@dp.callback_query(F.data == "helpful_message")
+async def save_feedback(call: CallbackQuery) -> None:
+    """This handler saves the feedback about the helpfulness of the message"""
+    print(call.data)
+    await call.answer(MESSAGES_DICT['thanks_for_feedback']['en'])
     
+@dp.callback_query(F.data == "not_helpful_message")
+async def save_feedback(call: CallbackQuery) -> None:
+    """This handler saves the feedback about the unhelpfulness of the message"""
+    print(call.data)
+    await call.answer(MESSAGES_DICT['thanks_for_feedback']['en'])
 
 @dp.message(F.text, Command('test'))
 async def test(message: Message, state: FSMContext) -> None:
@@ -547,13 +567,20 @@ async def send_daily_initial_piece(telegram_id: str, bot: Bot = None) -> None:
             
             # remove the job
             scheduler.remove_job(f'{telegram_id}_initial_consultation')
+            
+            # add the daily check job
+            scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': telegram_id}, id=f'{telegram_id}_daily_check', replace_existing=True)
+            
         else:
             response = await client.get(f'{BACKEND_API_ENDPOINT}/initial_advice_piece/{user_email}', headers=HEADERS)
             response.raise_for_status()
         
     message_text = response.json()['text']
+    async with get_async_client() as client:
+        response = await client.get(f'{BACKEND_API_ENDPOINT}/profiles/email/{user_email}', headers=HEADERS)
+    preferred_lang = response.json()['preferred_lang']
     
-    await bot.send_message(chat_id=telegram_id, text=message_text)
+    await bot.send_message(chat_id=telegram_id, text=message_text, parse_mode=ParseMode.MARKDOWN, reply_markup=get_inline_feedback_buttons(preferred_lang))
 
 
 @dp.message(DailyCheckStates.waiting_for_level)
@@ -593,7 +620,7 @@ async def daily_check(message: Message, state: FSMContext) -> None:
     await state.update_data(thread_id=thread_id)
     
     await state.set_state(RegistrationStates.initial_consultation_completed)
-    await message.answer(message_text, reply_markup=ReplyKeyboardRemove())
+    await message.answer(message_text, parse_mode=ParseMode.MARKDOWN, reply_markup=get_inline_feedback_buttons(preferred_lang))
 
 @dp.message(DailyCheckStates.waiting_for_notes)
 async def daily_check_notes(message: Message, state: FSMContext) -> None:
@@ -613,7 +640,7 @@ async def daily_check_notes(message: Message, state: FSMContext) -> None:
     await state.update_data(preferred_lang=preferred_lang)
 
     await state.set_state(DailyCheckStates.waiting_for_level)
-    await message.answer(MESSAGES_DICT['ask_lavel'][preferred_lang], reply_markup=get_level_keyboard(preferred_lang))
+    await message.answer(MESSAGES_DICT['ask_lavel'][preferred_lang], reply_markup=get_level_keyboard(preferred_lang), parse_mode=ParseMode.MARKDOWN)
 
 @dp.message(F.text)
 async def default_answer(message: Message, state: FSMContext) -> None:
@@ -625,8 +652,11 @@ async def default_answer(message: Message, state: FSMContext) -> None:
         await message.answer("Sorry, but I can't process this type of message. Please, use text or voice messages.")
         return
     
-    data = await state.get_data()
-    preferred_lang = data['preferred_lang']
+    # Get preferred_lang from the database instead of state
+    user_email = generate_dummy_email('tg', message.from_user.id)
+    async with get_async_client() as client:
+        response = await client.get(f'{BACKEND_API_ENDPOINT}/profiles/email/{user_email}', headers=HEADERS)
+    preferred_lang = response.json()['preferred_lang']
     
     if message.content_type == 'text':
         message_text = message.text
@@ -654,7 +684,7 @@ async def default_answer(message: Message, state: FSMContext) -> None:
     except KeyError:
         # for now just send error message
         # TODO: FIX check if thread_id is in the data and don't use it if it's not (start a new thread)
-        await message.answer("An error occurred while sending the message. Please, try again later. Take into account that images or voice messages are not supported yet. Try to wake me up with /start command!")
+        await message.answer("An error occurred while sending the message. Please, try again later. You can also completely refill your profile with /start command!")
     
     await message.bot.send_chat_action(chat_id=message.chat.id, action='typing')
     try:
@@ -663,10 +693,10 @@ async def default_answer(message: Message, state: FSMContext) -> None:
             response.raise_for_status()
     except Exception as e:
         logging.error(f"Error while sending the message: {e}. More info:\n {traceback.format_exc()}")
-        await message.answer("An error occurred while sending the message. Please, try again later. Take into account that images or voice messages are not supported yet. Try to wake me up with /start command!")
+        await message.answer("An error occurred while sending the message. Please, try again later. You can also completely refill your profile with /start command!")
         return
     
-    await message.answer(response.json()['text'], parse_mode=ParseMode.MARKDOWN)
+    await message.answer(response.json()['text'], parse_mode=ParseMode.MARKDOWN, reply_markup=get_inline_feedback_buttons(preferred_lang))
 
 
 async def main() -> None:
