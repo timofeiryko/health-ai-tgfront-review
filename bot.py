@@ -31,6 +31,19 @@ from utils import check_extract_lang, eats_choice_handler, validated_past_date, 
 from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
 from voice import voice_to_text, clean_audio_file
 
+import sentry_sdk
+
+sentry_sdk.init(
+    dsn="https://15b32d6e56f608bdc118a5329f4e8969@o4507735707615232.ingest.us.sentry.io/4507735720263680",
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
+
 TOKEN = os.getenv('TG_BOT_TOKEN')
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 storage = MemoryStorage()
