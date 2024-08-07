@@ -201,7 +201,7 @@ async def process_mass(message: Message, state: FSMContext) -> None:
 
     data = await state.get_data()
     preferred_lang = data['preferred_lang']
-    height = data['height']
+    height = int(data['height'])
     
     if message.text == MESSAGES_DICT['mass_option_low'][preferred_lang]:
         bmi = 19
