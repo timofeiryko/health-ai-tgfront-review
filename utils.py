@@ -194,7 +194,11 @@ def get_inline_feedback_buttons(preferred_lang: str) -> InlineKeyboardMarkup:
 
     builder = InlineKeyboardBuilder()
 
-    builder.add(InlineKeyboardButton(text=MESSAGES_DICT['helpful'][preferred_lang], callback_data='helpful_message'))
-    builder.add(InlineKeyboardButton(text=MESSAGES_DICT['not_helpful'][preferred_lang], callback_data='not_helpful_message'))
+    builder.add(InlineKeyboardButton(text=MESSAGES_DICT['helpful'][preferred_lang], callback_data=f'helpful_message'))
+    builder.add(InlineKeyboardButton(text=MESSAGES_DICT['not_helpful'][preferred_lang], callback_data=f'not_helpful_message'))
     
     return builder.as_markup()
+
+def clean_text(text: str) -> str:
+    # strip, leave only alphanumeric characters and spaces (remove punctuation and special characters)
+    return ''.join([char for char in text if char.isalnum() or char.isspace()])

@@ -26,7 +26,7 @@ from aiogram.fsm.storage.base import StorageKey
 from apscheduler_di import ContextSchedulerDecorator
 
 from translated_messages import MESSAGES_DICT
-from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard, get_consultation_markup, get_inline_feedback_buttons
+from utils import RegistrationStates, DailyCheckStates, get_lang_keyboard, get_sex_keyboard, get_level_keyboard, get_mass_options_keyboard, get_height_options_keyboard, get_inline_feedback_buttons, clean_text
 from utils import check_extract_lang, eats_choice_handler, validated_past_date, generate_dummy_email
 from to_api_utils import save_user_form, set_profile_fields, get_async_client, BACKEND_API_ENDPOINT, HEADERS
 from voice import voice_to_text, clean_audio_file
@@ -425,8 +425,26 @@ async def initial_consultation(message: Message, state: FSMContext) -> None:
         await state.update_data(thread_id=thread_id)
         await state.update_data(preferred_lang=preferred_lang)
         
-
+        # Create assistant message
+        async with get_async_client() as client:
+            messsage_json = {
+                'text': message_text,
+                'thread_id': thread_id,
+            }
+            response = await client.post(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages', headers=HEADERS, json=messsage_json)
+            response.raise_for_status()
+        
         await state.set_state(RegistrationStates.consulting)
+        
+        # Create assistant message
+        async with get_async_client() as client:
+            message_json = {
+                'text': message_text,
+                'thread_id': thread_id,
+            }
+            response = await client.post(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages', headers=HEADERS, json=message_json)
+            response.raise_for_status()
+        
         await message.answer(
             text=message_text,
             reply_markup=get_inline_feedback_buttons(preferred_lang),
@@ -476,8 +494,7 @@ async def consult(message: Message, state: FSMContext) -> None:
         async with get_async_client() as client:
             response = await client.get(f'{BACKEND_API_ENDPOINT}/profiles/email/{user_email}', headers=HEADERS)
             preferred_lang = response.json()['preferred_lang']
-            
-        thread_id = data['thread_id']
+            thread_id = data['thread_id']
         
         # if message.text == MESSAGES_DICT['complete_consultation'][preferred_lang]:
         #     # typing action
@@ -501,6 +518,7 @@ async def consult(message: Message, state: FSMContext) -> None:
             response = await client.get(f'{BACKEND_API_ENDPOINT}/chat/{user_email}/message/{thread_id}', headers=HEADERS, params={'text': message_text})
             response.raise_for_status()
         message_text = response.json()['text']
+        
         await message.answer(
             text=message_text,
             reply_markup=get_inline_feedback_buttons(preferred_lang),
@@ -512,23 +530,68 @@ async def consult(message: Message, state: FSMContext) -> None:
         traceback.print_exc()
         await message.answer("An error occurred while sending the message. Please, try again later. You can also completely refill your profile with /start command!")
  
-@dp.callback_query(F.data == "helpful_message")
-async def save_feedback(call: CallbackQuery) -> None:
-    """This handler saves the feedback about the helpfulness of the message"""
-    print(call.data)
+@dp.callback_query(F.data == 'helpful_message')
+async def save_feedback_good(call: CallbackQuery) -> None:
+    """This handler saves that the message was helpful"""
+    
+    telegram_id = call.from_user.id
+    message_text = call.message.text
+    user_email = generate_dummy_email('tg', telegram_id)
+    
     await call.answer(MESSAGES_DICT['thanks_for_feedback']['en'])
     
-@dp.callback_query(F.data == "not_helpful_message")
-async def save_feedback(call: CallbackQuery) -> None:
-    """This handler saves the feedback about the unhelpfulness of the message"""
-    print(call.data)
+    # list last 50 assistant messages and get the id of the message that was helpful (search for the message_text)
+    async with get_async_client() as client:
+        response = await client.get(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages', headers=HEADERS)
+        response.raise_for_status()
+        messages = response.json()
+        message_id = None
+        for message in messages:
+            if clean_text(message['message']) == clean_text(message_text):
+                message_id = message['id']
+                break
+        if message_id is None:
+            # log warning and return
+            logging.warning(f"Message {message_text} was not found in the assistant messages")
+            return
+    
+        # patch the message with the feedback
+        response = await client.patch(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages/{message_id}', headers=HEADERS, json={'positive_feedback': True})
+        
+    
+@dp.callback_query(F.data == 'not_helpful_message')
+async def save_feedback_bad(call: CallbackQuery) -> None:
+    """This handler saves that the message was not helpful"""
+    
+    telegram_id = call.from_user.id
+    message_text = call.message.text
+    user_email = generate_dummy_email('tg', telegram_id)
+    
     await call.answer(MESSAGES_DICT['thanks_for_feedback']['en'])
+    
+    # list last 50 assistant messages and get the id of the message that was helpful (search for the message_text)
+    async with get_async_client() as client:
+        response = await client.get(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages', headers=HEADERS)
+        response.raise_for_status()
+        messages = response.json()
+        message_id = None
+        for message in messages:
+            if clean_text(message['message']) == clean_text(message_text):
+                message_id = message['id']
+                break
+        if message_id is None:
+            # log warning and return
+            logging.warning(f"Message {message_text} was not found in the assistant messages")
+            return
+    
+        # patch the message with the feedback
+        response = await client.patch(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages/{message_id}', headers=HEADERS, json={'negative_feedback': True})
 
-@dp.message(F.text, Command('test'))
-async def test(message: Message, state: FSMContext) -> None:
-    """This handler is for testing purposes"""
-    scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_test', replace_existing=True)
-    await message.answer("Test job is scheduled")
+# @dp.message(F.text, Command('test'))
+# async def test(message: Message, state: FSMContext) -> None:
+#     """This handler is for testing purposes"""
+#     scheduler.add_job(send_daily_check_message, 'interval', seconds=UPDATE_INTERVAL, kwargs={'telegram_id': message.from_user.id}, id=f'{message.from_user.id}_test', replace_existing=True)
+#     await message.answer("Test job is scheduled")
 
 async def send_daily_check_message(telegram_id: str, bot: Bot = None) -> None:
     """Sends a daily check message to the user"""
@@ -579,6 +642,17 @@ async def send_daily_initial_piece(telegram_id: str, bot: Bot = None) -> None:
     async with get_async_client() as client:
         response = await client.get(f'{BACKEND_API_ENDPOINT}/profiles/email/{user_email}', headers=HEADERS)
     preferred_lang = response.json()['preferred_lang']
+    data = await user_context.get_data()
+    thread_id = data['thread_id']
+    
+    # Create assistant message
+    async with get_async_client() as client:
+        messsage_json = {
+            'text': message_text,
+            'thread_id': thread_id,
+        }
+        response = await client.post(f'{BACKEND_API_ENDPOINT}/users/{user_email}/assistant_messages', headers=HEADERS, json=messsage_json)
+        response.raise_for_status()
     
     await bot.send_message(chat_id=telegram_id, text=message_text, parse_mode=ParseMode.MARKDOWN, reply_markup=get_inline_feedback_buttons(preferred_lang))
 
