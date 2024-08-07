@@ -66,7 +66,7 @@ async def set_profile_fields(profile_fields: dict, user_id: Optional[dict]=None,
         user_id = response.json()['id']
 
     # extract only profile fields from the registration form
-    profile_fields_keys = ['name', 'preferred_lang', 'birth_date', 'sex', 'mass', 'height', 'eats_meat', 'eats_fish', 'eats_dairy', 'description', 'initial_summary']
+    profile_fields_keys = ['name', 'preferred_lang', 'birth_date', 'sex', 'mass', 'height', 'eats_meat', 'eats_fish', 'eats_dairy', 'description', 'initial_summary', 'tg_username']
     profile_fields = {key: profile_fields.get(key) for key in profile_fields_keys if profile_fields.get(key) is not None}
 
     # create profile if it doesn't exist

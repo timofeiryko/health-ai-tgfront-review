@@ -84,6 +84,7 @@ async def process_lang(message: Message, state: FSMContext) -> None:
             'full_name': message.from_user.full_name,
             'external_id': message.from_user.id,
             'preferred_lang': preferred_lang,
+            'tg_username': message.from_user.username
         }
 
         async with get_async_client() as client:
@@ -346,12 +347,14 @@ async def all_saved(message: Message, state: FSMContext) -> None:
         profile_data = {
             'preferred_lang': data['preferred_lang'],
             'name': message.from_user.first_name,
+            'tg_username': message.from_user.username,
             'description': data['description']
         }
     else:
         try:
             profile_data = {
                 'name': message.from_user.first_name,
+                'tg_username': message.from_user.username,
                 'preferred_lang': data['preferred_lang'],
                 'birth_date': data['birth_date'],
                 'sex': data['sex'],
